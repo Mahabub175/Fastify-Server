@@ -36,6 +36,35 @@ const createBlogController = async (
   }
 };
 
+// Create bulk blogs
+const createBulkBlogsController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const blogs = parseMultipartBody(req.body as Record<string, any>);
+
+    if (!Array.isArray(blogs) || !blogs.length) {
+      return responseError(reply, "No blogs provided", 400);
+    }
+
+    const createdBlogs = await blogServices.createBulkBlogsService(blogs);
+
+    return responseSuccess(
+      reply,
+      createdBlogs,
+      `${createdBlogs.length} blogs created successfully`
+    );
+  } catch (err: any) {
+    return responseError(
+      reply,
+      err.message || "Failed to create blogs",
+      500,
+      err
+    );
+  }
+};
+
 // Get all blogs
 const getAllBlogController = async (
   req: FastifyRequest,
@@ -182,6 +211,7 @@ const deleteManyBlogsController = async (
 
 export const blogControllers = {
   createBlogController,
+  createBulkBlogsController,
   getAllBlogController,
   getSingleBlogController,
   getSingleBlogBySlugController,

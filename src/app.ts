@@ -12,6 +12,7 @@ import { multipartPlugin } from "./app/plugins/fastifyMultipart";
 
 export const createApp = () => {
   const app = Fastify({
+    bodyLimit: 50 * 1024 * 1024,
     // logger: true,
   });
 

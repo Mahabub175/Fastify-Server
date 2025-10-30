@@ -20,6 +20,14 @@ export const createBlogService = async (blogData: IBlog) => {
   return result;
 };
 
+// Create bulk blogs
+const createBulkBlogsService = async (blogs: Partial<IBlog>[]) => {
+  if (!blogs || !blogs.length) throw new Error("No blogs provided");
+
+  const result = await blogModel.insertMany(blogs);
+  return result;
+};
+
 // Get all blogs with optional pagination & search
 const getAllBlogService = async (
   page?: number,
@@ -275,6 +283,7 @@ export const deleteManyBlogsService = async (blogIds: (string | number)[]) => {
 
 export const blogServices = {
   createBlogService,
+  createBulkBlogsService,
   getAllBlogService,
   getSingleBlogService,
   getSingleBlogBySlugService,
