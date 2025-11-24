@@ -8,4 +8,6 @@ export interface IBlog {
   images: string[];
   isDeleted: boolean;
   status: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
