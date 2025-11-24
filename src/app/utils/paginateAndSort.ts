@@ -49,19 +49,18 @@ export const paginateAndSort = async <T>(
   options: PaginateOptions = {}
 ) => {
   const {
-    page = 1,
-    limit = 10,
+    page,
+    limit,
     searchText = "",
     searchFields = [],
     filters = {},
     sort = { field: "createdAt", order: "desc" },
   } = options;
 
-  const pageNumber = Math.max(1, page);
-  const pageSize = Math.max(1, limit);
-  const skip = (pageNumber - 1) * pageSize;
-
-  const filterObj = buildFilters(filters);
+  const filterObj: Record<string, any> = buildFilters(filters);
+  if (!("isDeleted" in filterObj)) {
+    filterObj.isDeleted = false;
+  }
 
   if (searchText && searchFields.length) {
     const regex = new RegExp(searchText, "i");
@@ -69,6 +68,17 @@ export const paginateAndSort = async <T>(
   }
 
   const totalCount = await query.model.countDocuments(filterObj).exec();
+
+  const isPaginationProvided =
+    typeof page !== "undefined" && typeof limit !== "undefined";
+
+  const pageNumber = isPaginationProvided ? Math.max(1, page!) : 1;
+  const pageSize = isPaginationProvided ? Math.max(1, limit!) : totalCount;
+  const totalPages = isPaginationProvided
+    ? Math.ceil(totalCount / pageSize)
+    : 1;
+
+  const skip = isPaginationProvided ? (pageNumber - 1) * pageSize : 0;
 
   const results = await query
     .find(filterObj)
@@ -82,11 +92,11 @@ export const paginateAndSort = async <T>(
 
   return {
     results,
-    meta: {
+    pagination: {
       page: pageNumber,
       limit: pageSize,
       totalCount,
-      totalPages: Math.ceil(totalCount / pageSize),
+      totalPages,
     },
   };
 };
