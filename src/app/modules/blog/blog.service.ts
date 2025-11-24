@@ -3,7 +3,6 @@ import { IBlog } from "./blog.interface";
 import { blogModel } from "./blog.model";
 import { generateSlug } from "../../utils/generateSlug";
 import { paginateAndSort } from "../../utils/paginateAndSort";
-import { formatResultImage } from "../../utils/formatResultImage";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
