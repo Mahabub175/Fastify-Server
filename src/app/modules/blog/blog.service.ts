@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 import { IBlog } from "./blog.interface";
 import { blogModel } from "./blog.model";
-import path from "path";
-import fs from "fs";
 import { generateSlug } from "../../utils/generateSlug";
 import { paginateAndSort } from "../../utils/paginateAndSort";
 import { formatResultImage } from "../../utils/formatResultImage";
 import { throwError } from "../../utils/response";
+import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
+import { cleanObject } from "../../utils/cleanObject";
 
 // Create a blog
 export const createBlogService = async (blogData: IBlog) => {
@@ -37,35 +37,31 @@ const getAllBlogService = async (
 ) => {
   let query = blogModel.find();
 
+  const filters: Record<string, any> = {};
+
   if (searchText && searchFields?.length) {
-    const searchQuery = searchFields.map((field) => ({
+    filters["$or"] = searchFields.map((field) => ({
       [field]: { $regex: searchText, $options: "i" },
     }));
-    query = query.find({ $or: searchQuery });
   }
 
-  if (page && limit) {
-    const result = await paginateAndSort(query, {
-      page,
-      limit,
-      sort: { field: "createdAt", order: "desc" },
-    });
+  query = query.find(filters);
 
-    result.results = formatResultImage<IBlog>(result.results, [
-      "attachment",
-      "images",
-    ]) as unknown as typeof result.results;
+  const result = await paginateAndSort(query, {
+    page,
+    limit,
+    searchText,
+    searchFields,
+    sort: { field: "createdAt", order: "desc" },
+    filters,
+  });
 
-    return result;
-  }
+  // result.results = formatResultImage<IBlog>(result.results, [
+  //   "attachment",
+  //   "images",
+  // ]) as unknown as typeof result.results;
 
-  const results = await query.sort({ createdAt: -1 }).exec();
-  return {
-    results: formatResultImage<IBlog>(results, [
-      "attachment",
-      "images",
-    ]) as IBlog[],
-  };
+  return result;
 };
 
 // Get single blog by ID
@@ -73,48 +69,33 @@ const getSingleBlogService = async (blogId: string) => {
   const queryId =
     typeof blogId === "string" ? new mongoose.Types.ObjectId(blogId) : blogId;
 
-  const blog = await blogModel.findById(queryId).exec();
-  if (!blog) throwError("Blog not found", 404);
-  else {
-    const blogObj = blog.toObject() as IBlog;
-
-    if (blogObj.attachment) {
-      blogObj.attachment = formatResultImage(blogObj.attachment) as string;
+  const result = await paginateAndSort<IBlog>(
+    blogModel.find({ _id: queryId }),
+    {
+      filters: {},
     }
+  );
 
-    if (blogObj.images && blogObj.images.length > 0) {
-      blogObj.images = blogObj.images.map(
-        (img) => formatResultImage(img) as string
-      );
-    }
+  if (!result.results || !result.results.length)
+    throwError("Blog not found", 404);
 
-    return blogObj;
-  }
+  return result.results[0];
 };
 
 // Get single blog by slug
-const getSingleBlogBySlugService = async (slug: string) => {
-  const blog = await blogModel.findOne({ slug }).exec();
-  if (!blog) throwError("Blog not found", 404);
-  else {
-    const blogObj = blog.toObject() as IBlog;
+export const getSingleBlogBySlugService = async (slug: string) => {
+  const result = await paginateAndSort<IBlog>(blogModel.find({ slug }), {
+    filters: {},
+  });
 
-    if (blogObj.attachment) {
-      blogObj.attachment = formatResultImage(blogObj.attachment) as string;
-    }
+  if (!result.results || !result.results.length)
+    throwError("Blog not found", 404);
 
-    if (blogObj.images && blogObj.images.length > 0) {
-      blogObj.images = blogObj.images.map(
-        (img) => formatResultImage(img) as string
-      );
-    }
-
-    return blogObj;
-  }
+  return result.results[0];
 };
 
 // Update single blog
-export const updateSingleBlogService = async (
+const updateSingleBlogService = async (
   blogId: string | number,
   blogData: Partial<IBlog>
 ) => {
@@ -124,13 +105,7 @@ export const updateSingleBlogService = async (
   const blog = await blogModel.findById(queryId).exec();
   if (!blog) throwError("Blog not found", 404);
   else {
-    Object.keys(blogData).forEach((key) =>
-      blogData[key as keyof IBlog] === undefined ||
-      blogData[key as keyof IBlog] === null
-        ? delete blogData[key as keyof IBlog]
-        : null
-    );
-
+    blogData = cleanObject(blogData);
     if (blogData.slug) {
       blogData.slug = generateSlug(blogData.slug);
     } else if (blogData.name && blogData.name !== blog.name) {
@@ -142,34 +117,12 @@ export const updateSingleBlogService = async (
       blog.attachment &&
       blogData.attachment !== blog.attachment
     ) {
-      const prevFile = path.join(
-        process.cwd(),
-        "uploads",
-        path.basename(blog.attachment)
-      );
-      if (fs.existsSync(prevFile)) {
-        try {
-          fs.unlinkSync(prevFile);
-        } catch (err) {
-          throwError("Failed to delete previous attachment:", 500);
-        }
-      }
+      deleteFileSync(blog.attachment);
     }
 
     if (blogData.images && blogData.images.length > 0 && blog.images?.length) {
       for (const oldImg of blog.images) {
-        const prevFile = path.join(
-          process.cwd(),
-          "uploads",
-          path.basename(oldImg)
-        );
-        if (fs.existsSync(prevFile)) {
-          try {
-            fs.unlinkSync(prevFile);
-          } catch (err) {
-            throwError("Failed to delete previous images:", 500);
-          }
-        }
+        deleteFileSync(oldImg);
       }
     }
 
@@ -187,8 +140,50 @@ export const updateSingleBlogService = async (
   }
 };
 
-// Delete single blog
-export const deleteSingleBlogService = async (blogId: string | number) => {
+// Soft delete single blog
+const softDeleteSingleBlogService = async (blogId: string | number) => {
+  const queryId =
+    typeof blogId === "string" ? new mongoose.Types.ObjectId(blogId) : blogId;
+
+  const blog = await blogModel.findById(queryId).exec();
+  if (!blog) throwError("Blog not found", 404);
+  else {
+    if (blog.isDeleted) throwError("Blog already soft deleted", 400);
+
+    const softDeleted = await blogModel
+      .findByIdAndUpdate(queryId, { $set: { isDeleted: true } }, { new: true })
+      .exec();
+
+    if (!softDeleted) throwError("Blog soft delete failed", 500);
+
+    return softDeleted;
+  }
+};
+
+// Soft delete many blogs
+const softDeleteManyBlogsService = async (blogIds: (string | number)[]) => {
+  if (!blogIds || !blogIds.length) throwError("No blog IDs provided", 400);
+
+  const queryIds = blogIds.map((id) =>
+    typeof id === "string" && mongoose.Types.ObjectId.isValid(id)
+      ? new mongoose.Types.ObjectId(id)
+      : typeof id === "number"
+      ? id
+      : throwError(`Invalid blog ID: ${id}`, 400)
+  );
+
+  const result = await blogModel.updateMany(
+    { _id: { $in: queryIds }, isDeleted: false },
+    { $set: { isDeleted: true } }
+  );
+
+  if (!result.modifiedCount) throwError("No blogs were soft deleted", 404);
+
+  return result;
+};
+
+// Hard delete single blog
+const hardDeleteSingleBlogService = async (blogId: string | number) => {
   const queryId =
     typeof blogId === "string" ? new mongoose.Types.ObjectId(blogId) : blogId;
 
@@ -196,33 +191,12 @@ export const deleteSingleBlogService = async (blogId: string | number) => {
   if (!blog) throwError("Blog not found", 404);
   else {
     if (blog.attachment) {
-      const filePath = path.join(
-        process.cwd(),
-        "uploads",
-        path.basename(blog.attachment)
-      );
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          throwError("Failed to delete attachment:", 500);
-        }
-      }
+      deleteFileSync(blog.attachment);
     }
 
-    if (blog.images && blog.images.length > 0) {
+    if (blog.images?.length) {
       for (const img of blog.images) {
-        const imgPath = path.join(process.cwd(), "uploads", path.basename(img));
-        if (fs.existsSync(imgPath)) {
-          try {
-            fs.unlinkSync(imgPath);
-          } catch (err) {
-            throwError(
-              `Failed to delete image ${img} for blog ${blog._id}:`,
-              500
-            );
-          }
-        }
+        deleteFileSync(img);
       }
     }
 
@@ -233,8 +207,8 @@ export const deleteSingleBlogService = async (blogId: string | number) => {
   }
 };
 
-// Delete many blogs
-export const deleteManyBlogsService = async (blogIds: (string | number)[]) => {
+// Hard delete many blogs
+const hardDeleteManyBlogsService = async (blogIds: (string | number)[]) => {
   const queryIds = blogIds.map((id) => {
     if (typeof id === "string" && mongoose.Types.ObjectId.isValid(id))
       return new mongoose.Types.ObjectId(id);
@@ -245,34 +219,13 @@ export const deleteManyBlogsService = async (blogIds: (string | number)[]) => {
   const blogs = await blogModel.find({ _id: { $in: queryIds } }).exec();
 
   for (const blog of blogs) {
-    if (blog.attachment) {
-      const filePath = path.join(
-        process.cwd(),
-        "uploads",
-        path.basename(blog.attachment)
-      );
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          throwError(`Failed to delete attachment for blog ${blog._id}:`, 500);
-        }
-      }
+    if (blog?.attachment) {
+      deleteFileSync(blog.attachment);
     }
 
-    if (blog.images && blog.images.length > 0) {
+    if (blog?.images?.length) {
       for (const img of blog.images) {
-        const imgPath = path.join(process.cwd(), "uploads", path.basename(img));
-        if (fs.existsSync(imgPath)) {
-          try {
-            fs.unlinkSync(imgPath);
-          } catch (err) {
-            throwError(
-              `Failed to delete image ${img} for blog ${blog._id}:`,
-              500
-            );
-          }
-        }
+        deleteFileSync(img);
       }
     }
   }
@@ -288,6 +241,8 @@ export const blogServices = {
   getSingleBlogService,
   getSingleBlogBySlugService,
   updateSingleBlogService,
-  deleteSingleBlogService,
-  deleteManyBlogsService,
+  softDeleteSingleBlogService,
+  softDeleteManyBlogsService,
+  hardDeleteSingleBlogService,
+  hardDeleteManyBlogsService,
 };
