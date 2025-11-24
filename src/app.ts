@@ -9,6 +9,7 @@ import corsPlugin from "./app/plugins/cors";
 import { router } from "./app/routes/route";
 import { dbPlugin } from "./app/plugins/db";
 import { multipartPlugin } from "./app/plugins/fastifyMultipart";
+import "./app/modules/backup/backup.service"
 
 export const createApp = () => {
   const app = Fastify({
@@ -46,3 +47,4 @@ export const createApp = () => {
 
   return app;
 };
+
