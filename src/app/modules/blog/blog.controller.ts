@@ -166,23 +166,23 @@ const updateSingleBlogController = async (
   }
 };
 
-// Delete single blog
-const deleteSingleBlogController = async (
+// Soft delete single blog
+const softDeleteSingleBlogController = async (
   req: FastifyRequest,
   reply: FastifyReply
 ) => {
   try {
     const params = req.params as { blogId: string };
-    await blogServices.deleteSingleBlogService(params.blogId);
+    await blogServices.softDeleteSingleBlogService(params.blogId);
 
-    return responseSuccess(reply, null, "Blog Deleted Successfully!");
+    return responseSuccess(reply, null, "Blog Soft Deleted Successfully!");
   } catch (error: any) {
     throw error;
   }
 };
 
-// Delete many blogs
-const deleteManyBlogsController = async (
+// Soft delete many blogs
+const softDeleteManyBlogController = async (
   req: FastifyRequest,
   reply: FastifyReply
 ) => {
@@ -197,7 +197,50 @@ const deleteManyBlogsController = async (
       );
     }
 
-    const result = await blogServices.deleteManyBlogsService(blogIds);
+    const result = await blogServices.softDeleteManyBlogsService(blogIds);
+
+    return responseSuccess(
+      reply,
+      null,
+      `Bulk Blog Soft Delete Successful! Soft Deleted ${result.modifiedCount} Blogs.`
+    );
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Hard delete single blog
+const hardDeleteSingleBlogController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const params = req.params as { blogId: string };
+    await blogServices.hardDeleteSingleBlogService(params.blogId);
+
+    return responseSuccess(reply, null, "Blog Deleted Successfully!");
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Hard delete many blogs
+const hardDeleteManyBlogController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const blogIds = req.body as string[];
+
+    if (!Array.isArray(blogIds) || blogIds.length === 0) {
+      return responseError(
+        reply,
+        "Invalid or empty Blog IDs array provided",
+        500
+      );
+    }
+
+    const result = await blogServices.hardDeleteManyBlogsService(blogIds);
 
     return responseSuccess(
       reply,
@@ -216,6 +259,8 @@ export const blogControllers = {
   getSingleBlogController,
   getSingleBlogBySlugController,
   updateSingleBlogController,
-  deleteSingleBlogController,
-  deleteManyBlogsController,
+  softDeleteSingleBlogController,
+  softDeleteManyBlogController,
+  hardDeleteSingleBlogController,
+  hardDeleteManyBlogController,
 };
