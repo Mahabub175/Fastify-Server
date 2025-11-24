@@ -17,7 +17,14 @@ export const blogRoutes = async (app: FastifyInstance) => {
 
   app.patch("/blog/:blogId/", blogControllers.updateSingleBlogController);
 
-  app.delete("/blog/:blogId/", blogControllers.deleteSingleBlogController);
+  app.patch(
+    "/blog/:blogId/soft/",
+    blogControllers.softDeleteSingleBlogController
+  );
 
-  app.post("/blog/bulk-delete/", blogControllers.deleteManyBlogsController);
+  app.patch("/blog/bulk/soft/", blogControllers.softDeleteManyBlogController);
+
+  app.delete("/blog/:blogId/", blogControllers.hardDeleteSingleBlogController);
+
+  app.delete("/blog/bulk/", blogControllers.hardDeleteManyBlogController);
 };
