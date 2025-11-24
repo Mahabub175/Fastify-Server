@@ -6,5 +6,6 @@ export interface IBlog {
   publishedAt: string;
   attachment: string;
   images: string[];
+  isDeleted: boolean;
   status: boolean;
 }
