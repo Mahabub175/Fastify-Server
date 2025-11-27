@@ -6,7 +6,6 @@ import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
-import moment from "moment";
 
 // Create a blog
 const createBlogService = async (blogData: IBlog) => {
@@ -215,3 +214,4 @@ export const blogServices = {
   hardDeleteSingleBlogService,
   hardDeleteManyBlogsService,
 };
+
