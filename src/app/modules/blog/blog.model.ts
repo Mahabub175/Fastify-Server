@@ -46,7 +46,6 @@ blogSchema.options.toJSON.transform = function (doc, ret: any) {
 };
 
 blogSchema.pre("validate", async function (next) {
-  // Handle slug
   if (!this.slug && this.name) {
     let newSlug = generateSlug(this.name);
     let slugExists = await model<IBlog>("blog").exists({ slug: newSlug });
@@ -75,3 +74,4 @@ blogSchema.pre("validate", async function (next) {
 });
 
 export const blogModel = model<IBlog>("blog", blogSchema);
+
