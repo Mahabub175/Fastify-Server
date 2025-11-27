@@ -6,16 +6,11 @@ import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
+import moment from "moment";
 
 // Create a blog
-export const createBlogService = async (blogData: IBlog) => {
-  const slug = blogData.slug?.trim()
-    ? blogData.slug
-    : generateSlug(blogData.name);
-
-  const dataToSave = { ...blogData, slug };
-
-  const result = await blogModel.create(dataToSave);
+const createBlogService = async (blogData: IBlog) => {
+  const result = await blogModel.create(blogData);
   return result;
 };
 
@@ -29,38 +24,18 @@ const createBulkBlogsService = async (blogs: Partial<IBlog>[]) => {
 
 // Get all blogs with optional pagination & search
 const getAllBlogService = async (
-  page?: number,
-  limit?: number,
+  searchFields: string[],
   searchText?: string,
-  searchFields?: string[]
+  filters?: Record<string, any>
 ) => {
-  let query = blogModel.find();
+  const query = blogModel.find();
 
-  const filters: Record<string, any> = {};
-
-  if (searchText && searchFields?.length) {
-    filters["$or"] = searchFields.map((field) => ({
-      [field]: { $regex: searchText, $options: "i" },
-    }));
-  }
-
-  query = query.find(filters);
-
-  const result = await paginateAndSort(query, {
-    page,
-    limit,
-    searchText,
+  return paginateAndSort(query, {
     searchFields,
-    sort: { field: "createdAt", order: "desc" },
+    searchText,
     filters,
+    sort: { field: "createdAt", order: "desc" },
   });
-
-  // result.results = formatResultImage<IBlog>(result.results, [
-  //   "attachment",
-  //   "images",
-  // ]) as unknown as typeof result.results;
-
-  return result;
 };
 
 // Get single blog by ID
@@ -82,13 +57,13 @@ const getSingleBlogService = async (blogId: string) => {
 };
 
 // Get single blog by slug
-export const getSingleBlogBySlugService = async (slug: string) => {
+const getSingleBlogBySlugService = async (slug: string) => {
   const result = await paginateAndSort<IBlog>(blogModel.find({ slug }), {
     filters: {},
   });
 
   if (!result.results || !result.results.length)
-    throwError("Blog not found", 404);
+    throwError("Blog not found!", 404);
 
   return result.results[0];
 };
@@ -105,11 +80,6 @@ const updateSingleBlogService = async (
   if (!blog) throwError("Blog not found", 404);
   else {
     blogData = cleanObject(blogData);
-    if (blogData.slug) {
-      blogData.slug = generateSlug(blogData.slug);
-    } else if (blogData.name && blogData.name !== blog.name) {
-      blogData.slug = generateSlug(blogData.name);
-    }
 
     if (
       blogData.attachment &&

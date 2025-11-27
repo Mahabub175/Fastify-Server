@@ -3,7 +3,7 @@ export interface IBlog {
   slug: string;
   shortDescription: string;
   content: string;
-  publishedAt: string;
+  publishedAt: Date;
   attachment: string;
   images: string[];
   isDeleted: boolean;

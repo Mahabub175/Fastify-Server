@@ -2,7 +2,10 @@ import { FastifyRequest, FastifyReply } from "fastify";
 import { blogServices } from "./blog.service";
 import { responseError, responseSuccess } from "../../utils/response";
 import { IBlog } from "./blog.interface";
-import { parseMultipartBody } from "../../utils/parsedBodyData";
+import {
+  parseMultipartBody,
+  parseQueryFilters,
+} from "../../utils/parsedBodyData";
 import { uploadService } from "../upload/upload.service";
 
 // Create a blog
@@ -71,16 +74,16 @@ const getAllBlogController = async (
   reply: FastifyReply
 ) => {
   try {
-    const query = req.query as Record<string, any>;
-    const pageNumber = query.page ? parseInt(query.page, 10) : undefined;
-    const pageSize = query.limit ? parseInt(query.limit, 10) : undefined;
-    const searchText = query.searchText as string | undefined;
     const searchFields = ["name"];
+
+    const { filters, searchText } = parseQueryFilters(
+      req.query as Record<string, any>
+    );
+
     const result = await blogServices.getAllBlogService(
-      pageNumber,
-      pageSize,
+      searchFields,
       searchText,
-      searchFields
+      filters
     );
 
     return responseSuccess(reply, result, "Blogs Fetched Successfully!");

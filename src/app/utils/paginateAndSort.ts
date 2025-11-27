@@ -23,8 +23,10 @@ interface PaginateOptions {
 
 const buildFilters = (filters: Record<string, FilterValue>) => {
   const queryObj: Record<string, any> = {};
+
   for (const key in filters) {
     const value = filters[key];
+
     if (typeof value === "string") {
       queryObj[key] = new RegExp(value, "i");
     } else if (typeof value === "object" && value !== null) {
@@ -41,6 +43,7 @@ const buildFilters = (filters: Record<string, FilterValue>) => {
       queryObj[key] = value;
     }
   }
+
   return queryObj;
 };
 
@@ -57,9 +60,30 @@ export const paginateAndSort = async <T>(
     sort = { field: "createdAt", order: "desc" },
   } = options;
 
-  const filterObj: Record<string, any> = buildFilters(filters);
+  const filterObj: Record<string, any> = {};
+
+  for (const key in filters) {
+    const value = filters[key];
+
+    if (typeof value === "string") {
+      filterObj[key] = new RegExp(value, "i");
+    } else if (typeof value === "object" && value !== null) {
+      if ("from" in value || "to" in value) {
+        filterObj[key] = {};
+        if (value.from !== undefined) filterObj[key]["$gte"] = value.from;
+        if (value.to !== undefined) filterObj[key]["$lte"] = value.to;
+      } else if ("$in" in value) {
+        filterObj[key] = { $in: value.$in };
+      } else {
+        filterObj[key] = value;
+      }
+    } else {
+      filterObj[key] = value;
+    }
+  }
+
   if (!("isDeleted" in filterObj)) {
-    filterObj.isDeleted = false;
+    filterObj.isDeleted = { $in: [false, null, undefined] };
   }
 
   if (searchText && searchFields.length) {
@@ -69,34 +93,28 @@ export const paginateAndSort = async <T>(
 
   const totalCount = await query.model.countDocuments(filterObj).exec();
 
-  const isPaginationProvided =
-    typeof page !== "undefined" && typeof limit !== "undefined";
-
+  const isPaginationProvided = page !== undefined && limit !== undefined;
   const pageNumber = isPaginationProvided ? Math.max(1, page!) : 1;
   const pageSize = isPaginationProvided ? Math.max(1, limit!) : totalCount;
   const totalPages = isPaginationProvided
     ? Math.ceil(totalCount / pageSize)
     : 1;
-
   const skip = isPaginationProvided ? (pageNumber - 1) * pageSize : 0;
 
   const results = await query
     .find(filterObj)
-    .sort({
-      [sort.field!]: sort.order === "desc" ? -1 : 1,
-      _id: -1,
-    })
+    .sort({ [sort.field!]: sort.order === "desc" ? -1 : 1, _id: -1 })
     .skip(skip)
     .limit(pageSize)
     .exec();
 
   return {
+    pagination: { page: pageNumber, limit: pageSize, totalCount, totalPages },
     results,
-    pagination: {
-      page: pageNumber,
-      limit: pageSize,
-      totalCount,
-      totalPages,
-    },
   };
 };
+
+// result.results = formatResultImage<IBlog>(result.results, [
+//   "attachment",
+//   "images",
+// ]) as unknown as typeof result.results;
