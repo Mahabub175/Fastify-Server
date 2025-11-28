@@ -9,7 +9,8 @@ import corsPlugin from "./app/plugins/cors";
 import { router } from "./app/routes/route";
 import { dbPlugin } from "./app/plugins/db";
 import { multipartPlugin } from "./app/plugins/fastifyMultipart";
-import "./app/modules/backup/backup.service"
+import "./app/modules/backup/backup.service";
+import { redisPlugin } from "./app/plugins/redis";
 
 export const createApp = () => {
   const app = Fastify({
@@ -18,6 +19,12 @@ export const createApp = () => {
   });
 
   app.register(corsPlugin);
+
+  app.register(multipartPlugin);
+
+  app.register(dbPlugin);
+
+  // app.register(redisPlugin);
 
   const uploadsPath = path.resolve("uploads");
   if (!fs.existsSync(uploadsPath)) {
@@ -28,10 +35,6 @@ export const createApp = () => {
     root: uploadsPath,
     prefix: "/uploads/",
   });
-
-  app.register(multipartPlugin);
-
-  app.register(dbPlugin);
 
   app.register(router, { prefix: "/api/v1" });
 
@@ -47,4 +50,3 @@ export const createApp = () => {
 
   return app;
 };
-

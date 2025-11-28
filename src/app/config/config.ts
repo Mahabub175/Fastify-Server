@@ -15,4 +15,7 @@ export default {
   store_pass: process.env.STORE_PASS,
   base_url: process.env.BASE_URL,
   client_url: process.env.CLIENT_URL,
+  redis_host: process.env.REDIS_HOST,
+  redis_port: process.env.REDIS_PORT,
+  redis_password: process.env.REDIS_PASSWORD,
 };

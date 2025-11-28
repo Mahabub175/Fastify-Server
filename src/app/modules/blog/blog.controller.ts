@@ -81,6 +81,7 @@ const getAllBlogController = async (
     );
 
     const result = await blogServices.getAllBlogService(
+      req.server,
       searchFields,
       searchText,
       filters

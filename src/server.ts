@@ -1,14 +1,13 @@
 import dotenv from "dotenv";
 import path from "path";
 import config from "./app/config/config";
-import { log } from "console-log-colors";
 import { createApp } from "./app";
 
 dotenv.config({ path: path.join(process.cwd(), ".env") });
 
 const startServer = async () => {
   if (!config.database_url) {
-    log("DATABASE_URL is missing in .env!", "red");
+    console.log("\x1b[31m%s\x1b[0m", "DATABASE_URL is missing in .env!");
     process.exit(1);
   }
 
@@ -17,9 +16,11 @@ const startServer = async () => {
   const PORT = config.port ? Number(config.port) : 6000;
 
   try {
-    // Fastify will register db plugin internally
     await app.listen({ port: PORT, host: "0.0.0.0" });
-    log(`Server running at http://localhost:${PORT}`, "greenBright");
+    console.log(
+      "\x1b[32m%s\x1b[0m",
+      `Server running at http://localhost:${PORT}!`
+    );
   } catch (err) {
     app.log.error(err);
     process.exit(1);

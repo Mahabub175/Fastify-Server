@@ -1,3 +1,4 @@
+import { FastifyInstance } from "fastify";
 import mongoose from "mongoose";
 import { IBlog } from "./blog.interface";
 import { blogModel } from "./blog.model";
@@ -5,6 +6,7 @@ import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
+import { cacheAsync } from "../../utils/cacheAsync";
 
 // Create a blog
 const createBlogService = async (blogData: IBlog) => {
@@ -22,10 +24,22 @@ const createBulkBlogsService = async (blogs: Partial<IBlog>[]) => {
 
 // Get all blogs with optional pagination & search
 const getAllBlogService = async (
+  fastify: FastifyInstance,
   searchFields: string[],
   searchText?: string,
   filters?: Record<string, any>
 ) => {
+  // const key = `blogs:${JSON.stringify({ searchFields, searchText, filters })}`;
+
+  // return cacheAsync(
+  //   fastify,
+  //   key,
+  //   async () => {
+  //     const query = blogModel.find();
+  //     return paginateAndSort(query, { searchFields, searchText, filters });
+  //   },
+  //   60
+  // );
   const query = blogModel.find();
 
   return paginateAndSort(query, {
