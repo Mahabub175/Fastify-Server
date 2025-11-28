@@ -46,7 +46,6 @@ const getAllBlogService = async (
     searchFields,
     searchText,
     filters,
-    sort: { field: "createdAt", order: "desc" },
   });
 };
 
@@ -289,3 +288,4 @@ export const blogServices = {
   hardDeleteSingleBlogService,
   hardDeleteManyBlogsService,
 };
+
