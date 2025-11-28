@@ -1,10 +1,7 @@
 import { Schema, model } from "mongoose";
 import { IBlog } from "./blog.interface";
 import { generateSlug } from "../../utils/generateSlug";
-import config from "../../config/config";
 import moment from "moment";
-
-const BASE_URL = config.base_url || "https://example.com";
 
 const blogSchema = new Schema<IBlog>(
   {
@@ -21,29 +18,8 @@ const blogSchema = new Schema<IBlog>(
       default: true,
     },
   },
-  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
+  { timestamps: true }
 );
-
-blogSchema.options.toJSON = blogSchema.options.toJSON || {};
-blogSchema.options.toJSON.transform = function (doc, ret: any) {
-  if (!ret) return ret;
-
-  if (ret.attachment && typeof ret.attachment === "string") {
-    ret.attachment = `${BASE_URL}/${ret.attachment}`;
-  }
-
-  if (Array.isArray(ret.images)) {
-    ret.images = ret.images.map((img: string) => `${BASE_URL}/${img}`);
-  }
-
-  if (ret.publishedAt) {
-    ret.publishedAt = moment(ret.publishedAt)
-      .local()
-      .format("YYYY-MM-DD HH:mm:ss");
-  }
-
-  return ret;
-};
 
 blogSchema.pre("validate", async function (next) {
   if (!this.slug && this.name) {
@@ -74,4 +50,3 @@ blogSchema.pre("validate", async function (next) {
 });
 
 export const blogModel = model<IBlog>("blog", blogSchema);
-

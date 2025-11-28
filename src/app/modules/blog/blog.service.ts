@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { IBlog } from "./blog.interface";
 import { blogModel } from "./blog.model";
-import { generateSlug } from "../../utils/generateSlug";
 import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
@@ -108,6 +107,26 @@ const updateSingleBlogService = async (
   }
 };
 
+// Toggle blog status
+const toggleBlogStatusService = async (blogId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throwError("Invalid blog ID", 400);
+  }
+
+  const blog = await blogModel.findOne({
+    _id: blogId,
+    isDeleted: { $ne: true },
+  });
+
+  if (!blog) throwError("Blog not found or already deleted", 404);
+  else {
+    blog.status = !blog.status;
+    await blog.save();
+
+    return blog.toObject();
+  }
+};
+
 // Soft delete single blog
 const softDeleteSingleBlogService = async (blogId: string | number) => {
   const queryId =
@@ -126,6 +145,45 @@ const softDeleteSingleBlogService = async (blogId: string | number) => {
 
     return softDeleted;
   }
+};
+
+const toggleBlogSoftDeleteService = async (blogId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throwError("Invalid blog ID", 400);
+  }
+
+  const blog = await blogModel.findOne({
+    _id: blogId,
+  });
+
+  if (!blog) throwError("Blog not found!", 404);
+  else {
+    blog.isDeleted = !blog.isDeleted;
+    await blog.save();
+
+    return blog.toObject();
+  }
+};
+
+const recoverBlogService = async (blogIds: string[]) => {
+  if (!Array.isArray(blogIds) || blogIds.length === 0) {
+    throw new Error("No blog IDs provided");
+  }
+
+  const validIds = blogIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+  if (validIds.length === 0) {
+    throw new Error("No valid blog IDs provided");
+  }
+
+  const result = await blogModel.updateMany(
+    { _id: { $in: validIds } },
+    { $set: { isDeleted: false } }
+  );
+
+  return {
+    modifiedCount: result.modifiedCount,
+    matchedCount: result.matchedCount,
+  };
 };
 
 // Soft delete many blogs
@@ -209,9 +267,11 @@ export const blogServices = {
   getSingleBlogService,
   getSingleBlogBySlugService,
   updateSingleBlogService,
+  toggleBlogStatusService,
   softDeleteSingleBlogService,
+  toggleBlogSoftDeleteService,
+  recoverBlogService,
   softDeleteManyBlogsService,
   hardDeleteSingleBlogService,
   hardDeleteManyBlogsService,
 };
-

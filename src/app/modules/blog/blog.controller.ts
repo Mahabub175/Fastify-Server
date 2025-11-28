@@ -169,6 +169,21 @@ const updateSingleBlogController = async (
   }
 };
 
+// Toggle blog status
+const toggleBlogStatusController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const params = req.params as { blogId: string };
+    await blogServices.toggleBlogStatusService(params.blogId);
+
+    return responseSuccess(reply, null, "Blog Status Toggled Successfully!");
+  } catch (error: any) {
+    throw error;
+  }
+};
+
 // Soft delete single blog
 const softDeleteSingleBlogController = async (
   req: FastifyRequest,
@@ -179,6 +194,53 @@ const softDeleteSingleBlogController = async (
     await blogServices.softDeleteSingleBlogService(params.blogId);
 
     return responseSuccess(reply, null, "Blog Soft Deleted Successfully!");
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Toggle blog soft delete
+const toggleBlogSoftDeleteController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const params = req.params as { blogId: string };
+    await blogServices.toggleBlogSoftDeleteService(params.blogId);
+
+    return responseSuccess(
+      reply,
+      null,
+      "Blog Soft Delete Toggled Successfully!"
+    );
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Recover blog
+const recoverBlogController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const blogIds = req.body as string[];
+
+    if (!blogIds || !Array.isArray(blogIds) || blogIds.length === 0) {
+      return responseError(
+        reply,
+        "Invalid or empty Blog IDs array provided",
+        500
+      );
+    }
+
+    const result = await blogServices.recoverBlogService(blogIds);
+
+    return responseSuccess(
+      reply,
+      null,
+      `Blog Recover Successful! Recovered ${result.modifiedCount} Blog.`
+    );
   } catch (error: any) {
     throw error;
   }
@@ -262,7 +324,10 @@ export const blogControllers = {
   getSingleBlogController,
   getSingleBlogBySlugController,
   updateSingleBlogController,
+  toggleBlogStatusController,
   softDeleteSingleBlogController,
+  toggleBlogSoftDeleteController,
+  recoverBlogController,
   softDeleteManyBlogController,
   hardDeleteSingleBlogController,
   hardDeleteManyBlogController,

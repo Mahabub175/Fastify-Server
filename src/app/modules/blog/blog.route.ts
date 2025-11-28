@@ -6,6 +6,8 @@ export const blogRoutes = async (app: FastifyInstance) => {
 
   app.post("/blog/bulk/", blogControllers.createBulkBlogsController);
 
+  app.post("/blog/recover/", blogControllers.recoverBlogController);
+
   app.get("/blog/", blogControllers.getAllBlogController);
 
   app.get("/blog/:blogId/", blogControllers.getSingleBlogController);
@@ -18,8 +20,18 @@ export const blogRoutes = async (app: FastifyInstance) => {
   app.patch("/blog/:blogId/", blogControllers.updateSingleBlogController);
 
   app.patch(
+    "/blog/:blogId/status/toggle/",
+    blogControllers.toggleBlogStatusController
+  );
+
+  app.patch(
     "/blog/:blogId/soft/",
     blogControllers.softDeleteSingleBlogController
+  );
+
+  app.patch(
+    "/blog/:blogId/soft/toggle/",
+    blogControllers.toggleBlogSoftDeleteController
   );
 
   app.patch("/blog/bulk/soft/", blogControllers.softDeleteManyBlogController);
