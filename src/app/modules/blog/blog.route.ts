@@ -25,6 +25,11 @@ export const blogRoutes = async (app: FastifyInstance) => {
   );
 
   app.patch(
+    "/blog/status/toggle/many/",
+    blogControllers.toggleManyBlogStatusController
+  );
+
+  app.patch(
     "/blog/:blogId/soft/",
     blogControllers.softDeleteSingleBlogController
   );
@@ -32,6 +37,11 @@ export const blogRoutes = async (app: FastifyInstance) => {
   app.patch(
     "/blog/:blogId/soft/toggle/",
     blogControllers.toggleBlogSoftDeleteController
+  );
+
+  app.patch(
+    "/blog/soft/toggle/many/",
+    blogControllers.toggleManyBlogSoftDeleteController
   );
 
   app.patch("/blog/bulk/soft/", blogControllers.softDeleteManyBlogController);
