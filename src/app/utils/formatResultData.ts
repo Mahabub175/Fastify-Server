@@ -1,30 +1,43 @@
 import config from "../config/config";
-import moment from "moment";
 
 export const formatResultData = <T extends Record<string, any>>(
   results: T | T[],
   fields?: string | string[]
 ): T | T[] => {
+  const isLikelyISODate = (value: any): boolean => {
+    return (
+      typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)
+    );
+  };
+
   const normalizeField = (value: any): any => {
     if (!value) return value;
 
-    if (typeof value === "string" && value.startsWith("uploads/")) {
-      return `${config.base_url}/${value.replace(/\\/g, "/")}`;
+    if (typeof value === "string") {
+      if (value.startsWith("uploads/")) {
+        return `${config.base_url}/${value.replace(/\\/g, "/")}`;
+      }
+      if (isLikelyISODate(value)) {
+        const d = new Date(value);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().replace("T", " ").substring(0, 19);
+        }
+      }
+      return value;
+    }
+
+    if (value instanceof Date) {
+      return value.toISOString().replace("T", " ").substring(0, 19);
     }
 
     if (Array.isArray(value)) {
       return value.map((v) =>
         typeof v === "string" && v.startsWith("uploads/")
           ? `${config.base_url}/${v.replace(/\\/g, "/")}`
+          : v instanceof Date
+          ? v.toISOString().replace("T", " ").substring(0, 19)
           : v
       );
-    }
-
-    if (
-      value instanceof Date ||
-      moment(value, moment.ISO_8601, true).isValid()
-    ) {
-      return moment(value).local().format("YYYY-MM-DD HH:mm:ss");
     }
 
     return value;
@@ -33,23 +46,19 @@ export const formatResultData = <T extends Record<string, any>>(
   const fieldList = Array.isArray(fields) ? fields : fields ? [fields] : [];
 
   const formatItem = (item: T): T => {
-    const docData = (item as any)._doc || item;
-    const newData: any = {};
+    const source = (item as any)._doc || item;
+    const formatted: any = {};
 
-    for (const key in docData) {
-      newData[key] = normalizeField(docData[key]);
+    for (const key in source) {
+      formatted[key] = normalizeField(source[key]);
     }
 
     for (const key of fieldList) {
-      newData[key] = normalizeField(docData[key]);
+      formatted[key] = normalizeField(source[key]);
     }
 
-    return newData as T;
+    return formatted as T;
   };
 
-  if (Array.isArray(results)) {
-    return results.map(formatItem);
-  } else {
-    return formatItem(results as T);
-  }
+  return Array.isArray(results) ? results.map(formatItem) : formatItem(results);
 };
