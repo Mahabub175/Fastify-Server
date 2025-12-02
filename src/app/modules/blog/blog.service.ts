@@ -143,24 +143,29 @@ const toggleBlogStatusService = async (blogId: string) => {
 // Toggle multiple blog status
 const toggleManyBlogStatusService = async (blogIds: string[]) => {
   const validIds = blogIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
-
   if (!validIds.length) throwError("No valid blog IDs provided!", 400);
 
-  const blogs = await blogModel.find({
-    _id: { $in: validIds },
-    isDeleted: { $ne: true },
-  });
+  const result = await blogModel.updateMany(
+    {
+      _id: { $in: validIds },
+      isDeleted: { $ne: true },
+    },
+    [
+      {
+        $set: {
+          status: { $not: "$status" },
+        },
+      },
+    ]
+  );
 
-  if (!blogs.length) throwError("No blogs found or all are deleted!", 404);
+  if (result.matchedCount === 0)
+    throwError("No blogs found or all are deleted!", 404);
 
-  const updatedBlogs = [];
-  for (const blog of blogs) {
-    blog.status = !blog.status;
-    await blog.save();
-    updatedBlogs.push(blog.toObject());
-  }
-
-  return updatedBlogs;
+  return {
+    matchedCount: result.matchedCount,
+    modifiedCount: result.modifiedCount,
+  };
 };
 
 // Soft delete single blog
@@ -202,26 +207,32 @@ const toggleBlogSoftDeleteService = async (blogId: string) => {
   }
 };
 
-// Soft delete multiple blogs
+// Toggle Soft delete multiple blogs
 const toggleManyBlogSoftDeleteService = async (blogIds: string[]) => {
   const validIds = blogIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
-
   if (!validIds.length) throwError("No valid blog IDs provided!", 400);
 
-  const blogs = await blogModel.find({
-    _id: { $in: validIds },
-  });
+  const result = await blogModel.updateMany(
+    {
+      _id: { $in: validIds },
+    },
+    [
+      {
+        $set: {
+          isDeleted: { $not: "$isDeleted" },
+        },
+      },
+    ]
+  );
 
-  if (!blogs.length) throwError("No blogs found!", 404);
-
-  const updatedBlogs = [];
-  for (const blog of blogs) {
-    blog.isDeleted = !blog.isDeleted;
-    await blog.save();
-    updatedBlogs.push(blog.toObject());
+  if (result.matchedCount === 0) {
+    throwError("No blogs found!", 404);
   }
 
-  return updatedBlogs;
+  return {
+    matchedCount: result.matchedCount,
+    modifiedCount: result.modifiedCount,
+  };
 };
 
 // Recover blog

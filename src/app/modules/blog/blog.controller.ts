@@ -201,12 +201,12 @@ const toggleManyBlogStatusController = async (
       );
     }
 
-    await blogServices.toggleManyBlogStatusService(blogIds);
+    const result = await blogServices.toggleManyBlogStatusService(blogIds);
 
     return responseSuccess(
       reply,
       null,
-      "Multiple Blog Status Toggled Successfully!"
+      `Multiple Blog Status Toggled Successfully! Toggled ${result.modifiedCount} Blogs.`
     );
   } catch (error: any) {
     throw error;
@@ -262,12 +262,12 @@ const toggleManyBlogSoftDeleteController = async (
         500
       );
     }
-    await blogServices.toggleManyBlogStatusService(blogIds);
+    const result = await blogServices.toggleManyBlogStatusService(blogIds);
 
     return responseSuccess(
       reply,
       null,
-      "Multiple Blog Soft Delete Toggled Successfully!"
+      `Multiple Blog Soft Delete Toggled Successfully! Toggled ${result.modifiedCount} Blogs.`
     );
   } catch (error: any) {
     throw error;
@@ -295,7 +295,7 @@ const recoverBlogController = async (
     return responseSuccess(
       reply,
       null,
-      `Blog Recover Successful! Recovered ${result.modifiedCount} Blog.`
+      `Blogs Recovered Successfully! Recovered ${result.modifiedCount} Blog.`
     );
   } catch (error: any) {
     throw error;
@@ -366,7 +366,7 @@ const hardDeleteManyBlogController = async (
     return responseSuccess(
       reply,
       null,
-      `Bulk Blog Delete Successful! Deleted ${result.deletedCount} Blogs.`
+      `Bulk Blog Deleted Successfully! Deleted ${result.deletedCount} Blogs.`
     );
   } catch (error: any) {
     throw error;
