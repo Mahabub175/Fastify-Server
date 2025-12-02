@@ -41,16 +41,16 @@ export const paginateAndSort = async <T extends Record<string, any>>(
 
   for (const key in filters) {
     const value = filters[key];
-
-    if (value === null || value === undefined) continue;
+    if (value == null) continue;
 
     if (typeof value === "string") {
       filterObj[key] = /[a-zA-Z]/.test(value) ? new RegExp(value, "i") : value;
     } else if (typeof value === "object") {
       if ("from" in value || "to" in value) {
-        filterObj[key] = {};
-        if (value.from) filterObj[key].$gte = value.from;
-        if (value.to) filterObj[key].$lte = value.to;
+        const range: Record<string, any> = {};
+        if (value.from !== undefined) range.$gte = value.from;
+        if (value.to !== undefined) range.$lte = value.to;
+        filterObj[key] = range;
       } else if ("$in" in value && Array.isArray((value as any).$in)) {
         filterObj[key] = { $in: (value as any).$in };
       } else {
@@ -73,29 +73,31 @@ export const paginateAndSort = async <T extends Record<string, any>>(
   const isPaginated = !!limit;
   const skip = isPaginated ? (page - 1) * limit : 0;
 
-  let baseQuery = query
-    .find(filterObj)
-    .sort({ [sort.field!]: sort.order === "desc" ? -1 : 1 });
+  let baseQuery = query.find(filterObj).sort({
+    [sort.field!]: sort.order === "desc" ? -1 : 1,
+    _id: -1,
+  });
 
-  if (isPaginated) {
-    baseQuery = baseQuery.skip(skip).limit(limit);
+  if (isPaginated) baseQuery = baseQuery.skip(skip).limit(limit);
+
+  const results = await baseQuery.lean().exec();
+
+  const totalCount = isPaginated
+    ? await query.model.countDocuments(filterObj)
+    : results.length;
+
+  const formatted = new Array(results.length);
+  for (let i = 0; i < results.length; i++) {
+    formatted[i] = formatResultData(results[i]);
   }
-
-  const [results, totalCount] = await Promise.all([
-    baseQuery.lean().exec(),
-    isPaginated ? query.model.countDocuments(filterObj) : Promise.resolve(0),
-  ]);
-
-  const formatted = results.map((r) => formatResultData(r));
 
   return {
     pagination: {
       page,
       limit: limit ?? 0,
-      totalCount: isPaginated ? totalCount : results.length,
+      totalCount,
       totalPages: isPaginated ? Math.ceil(totalCount / limit!) : 1,
     },
     results: formatted,
   };
 };
-
