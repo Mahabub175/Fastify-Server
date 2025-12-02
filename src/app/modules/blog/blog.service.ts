@@ -140,6 +140,29 @@ const toggleBlogStatusService = async (blogId: string) => {
   }
 };
 
+// Toggle multiple blog status
+const toggleManyBlogStatusService = async (blogIds: string[]) => {
+  const validIds = blogIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  if (!validIds.length) throwError("No valid blog IDs provided!", 400);
+
+  const blogs = await blogModel.find({
+    _id: { $in: validIds },
+    isDeleted: { $ne: true },
+  });
+
+  if (!blogs.length) throwError("No blogs found or all are deleted!", 404);
+
+  const updatedBlogs = [];
+  for (const blog of blogs) {
+    blog.status = !blog.status;
+    await blog.save();
+    updatedBlogs.push(blog.toObject());
+  }
+
+  return updatedBlogs;
+};
+
 // Soft delete single blog
 const softDeleteSingleBlogService = async (blogId: string | number) => {
   const queryId =
@@ -148,18 +171,19 @@ const softDeleteSingleBlogService = async (blogId: string | number) => {
   const blog = await blogModel.findById(queryId).exec();
   if (!blog) throwError("Blog not found", 404);
   else {
-    if (blog.isDeleted) throwError("Blog already soft deleted", 400);
+    if (blog.isDeleted) throwError("Blog already soft deleted!", 400);
 
     const softDeleted = await blogModel
       .findByIdAndUpdate(queryId, { $set: { isDeleted: true } }, { new: true })
       .exec();
 
-    if (!softDeleted) throwError("Blog soft delete failed", 500);
+    if (!softDeleted) throwError("Blog soft delete failed!", 500);
 
     return softDeleted;
   }
 };
 
+// Toggle blog soft delete
 const toggleBlogSoftDeleteService = async (blogId: string) => {
   if (!mongoose.Types.ObjectId.isValid(blogId)) {
     throwError("Invalid blog ID", 400);
@@ -178,6 +202,29 @@ const toggleBlogSoftDeleteService = async (blogId: string) => {
   }
 };
 
+// Soft delete multiple blogs
+const toggleManyBlogSoftDeleteService = async (blogIds: string[]) => {
+  const validIds = blogIds.filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+  if (!validIds.length) throwError("No valid blog IDs provided!", 400);
+
+  const blogs = await blogModel.find({
+    _id: { $in: validIds },
+  });
+
+  if (!blogs.length) throwError("No blogs found!", 404);
+
+  const updatedBlogs = [];
+  for (const blog of blogs) {
+    blog.isDeleted = !blog.isDeleted;
+    await blog.save();
+    updatedBlogs.push(blog.toObject());
+  }
+
+  return updatedBlogs;
+};
+
+// Recover blog
 const recoverBlogService = async (blogIds: string[]) => {
   if (!Array.isArray(blogIds) || blogIds.length === 0) {
     throw new Error("No blog IDs provided");
@@ -281,11 +328,12 @@ export const blogServices = {
   getSingleBlogBySlugService,
   updateSingleBlogService,
   toggleBlogStatusService,
+  toggleManyBlogStatusService,
   softDeleteSingleBlogService,
   toggleBlogSoftDeleteService,
-  recoverBlogService,
+  toggleManyBlogSoftDeleteService,
   softDeleteManyBlogsService,
+  recoverBlogService,
   hardDeleteSingleBlogService,
   hardDeleteManyBlogsService,
 };
-
