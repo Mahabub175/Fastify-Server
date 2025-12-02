@@ -185,6 +185,34 @@ const toggleBlogStatusController = async (
   }
 };
 
+// Toggle many blog status
+const toggleManyBlogStatusController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const blogIds = req.body as string[];
+
+    if (!blogIds || !Array.isArray(blogIds) || blogIds.length === 0) {
+      return responseError(
+        reply,
+        "Invalid or empty Blog IDs array provided",
+        500
+      );
+    }
+
+    await blogServices.toggleManyBlogStatusService(blogIds);
+
+    return responseSuccess(
+      reply,
+      null,
+      "Multiple Blog Status Toggled Successfully!"
+    );
+  } catch (error: any) {
+    throw error;
+  }
+};
+
 // Soft delete single blog
 const softDeleteSingleBlogController = async (
   req: FastifyRequest,
@@ -213,6 +241,33 @@ const toggleBlogSoftDeleteController = async (
       reply,
       null,
       "Blog Soft Delete Toggled Successfully!"
+    );
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Toggle many blog soft delete
+const toggleManyBlogSoftDeleteController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const blogIds = req.body as string[];
+
+    if (!blogIds || !Array.isArray(blogIds) || blogIds.length === 0) {
+      return responseError(
+        reply,
+        "Invalid or empty Blog IDs array provided",
+        500
+      );
+    }
+    await blogServices.toggleManyBlogStatusService(blogIds);
+
+    return responseSuccess(
+      reply,
+      null,
+      "Multiple Blog Soft Delete Toggled Successfully!"
     );
   } catch (error: any) {
     throw error;
@@ -326,10 +381,12 @@ export const blogControllers = {
   getSingleBlogBySlugController,
   updateSingleBlogController,
   toggleBlogStatusController,
+  toggleManyBlogStatusController,
   softDeleteSingleBlogController,
   toggleBlogSoftDeleteController,
-  recoverBlogController,
+  toggleManyBlogSoftDeleteController,
   softDeleteManyBlogController,
+  recoverBlogController,
   hardDeleteSingleBlogController,
   hardDeleteManyBlogController,
 };
