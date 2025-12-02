@@ -31,7 +31,6 @@ export const paginateAndSort = async <T extends Record<string, any>>(
     sort = { field: "createdAt", order: "desc" },
   } = options;
 
-  // Extract pagination from filters (faster / cleaner)
   const page = Number(filters.page) > 0 ? Number(filters.page) : 1;
   const limit = Number(filters.limit) > 0 ? Number(filters.limit) : undefined;
 
@@ -99,3 +98,4 @@ export const paginateAndSort = async <T extends Record<string, any>>(
     results: formatted,
   };
 };
+
