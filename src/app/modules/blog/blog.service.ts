@@ -54,12 +54,9 @@ const getSingleBlogService = async (blogId: string) => {
   const queryId =
     typeof blogId === "string" ? new mongoose.Types.ObjectId(blogId) : blogId;
 
-  const result = await paginateAndSort<IBlog>(
-    blogModel.find({ _id: queryId }),
-    {
-      filters: {},
-    }
-  );
+  const query = blogModel.find({ _id: queryId });
+
+  const result = await paginateAndSort<IBlog>(query);
 
   if (!result.results || !result.results.length)
     throwError("Blog not found", 404);
@@ -69,9 +66,9 @@ const getSingleBlogService = async (blogId: string) => {
 
 // Get single blog by slug
 const getSingleBlogBySlugService = async (slug: string) => {
-  const result = await paginateAndSort<IBlog>(blogModel.find({ slug }), {
-    filters: {},
-  });
+  const query = blogModel.find({ slug });
+
+  const result = await paginateAndSort<IBlog>(query);
 
   if (!result.results || !result.results.length)
     throwError("Blog not found!", 404);

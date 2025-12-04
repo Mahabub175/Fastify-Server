@@ -19,7 +19,7 @@ const startServer = async () => {
     await app.listen({ port: PORT, host: "0.0.0.0" });
     console.log(
       "\x1b[32m%s\x1b[0m",
-      `Server running at http://localhost:${PORT}!`
+      `Server running at http://localhost:${PORT}`
     );
   } catch (err) {
     app.log.error(err);

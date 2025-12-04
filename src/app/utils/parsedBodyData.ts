@@ -1,3 +1,37 @@
+const isNumericKeyedObject = (obj: any) => {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
+  const keys = Object.keys(obj);
+  return keys.length > 0 && keys.every((k) => !isNaN(Number(k)));
+};
+
+const tryParseJSON = (value: any) => {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+    (trimmed.startsWith("[") && trimmed.endsWith("]"))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+};
+
+const isFileObject = (value: any) => {
+  return (
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    (value.file || value.filename || value.mimetype || value.type === "file")
+  );
+};
+
 export const parseMultipartBody = (body: Record<string, any>): any => {
   if (isNumericKeyedObject(body)) {
     return Object.keys(body)
@@ -14,22 +48,35 @@ export const parseMultipartBody = (body: Record<string, any>): any => {
       parsed[key] = Object.keys(value)
         .sort((a, b) => Number(a) - Number(b))
         .map((k) => parseMultipartBody(value[k]));
-    } else if (Array.isArray(value)) {
-      parsed[key] = value.map((v) => parseMultipartBody(v));
-    } else if (value?.type === "field") {
-      parsed[key] = value.value;
-    } else {
-      parsed[key] = value;
+      continue;
     }
+
+    if (value?.type === "field") {
+      parsed[key] = tryParseJSON(value.value);
+      continue;
+    }
+
+    if (isFileObject(value)) {
+      parsed[key] = value;
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      parsed[key] = value.map((v) =>
+        isFileObject(v) ? v : parseMultipartBody(v)
+      );
+      continue;
+    }
+
+    if (typeof value === "object" && value !== null) {
+      parsed[key] = parseMultipartBody(value);
+      continue;
+    }
+
+    parsed[key] = tryParseJSON(value);
   }
 
   return parsed;
-};
-
-const isNumericKeyedObject = (obj: any) => {
-  if (!obj || typeof obj !== "object") return false;
-  const keys = Object.keys(obj);
-  return keys.length > 0 && keys.every((k) => !isNaN(Number(k)));
 };
 
 export const parseQueryFilters = (
@@ -52,13 +99,16 @@ export const parseQueryFilters = (
     if (rawKey.endsWith("[from]") || rawKey.endsWith("[to]")) {
       const field = rawKey.replace(/\[(from|to)\]$/, "");
       filters[field] = filters[field] || {};
+
       if (rawKey.endsWith("[from]")) filters[field]["$gte"] = Number(value);
       if (rawKey.endsWith("[to]")) filters[field]["$lte"] = Number(value);
+
       continue;
     }
 
     const keys = rawKey.split(".");
     let current = filters;
+
     for (let i = 0; i < keys.length; i++) {
       const k = keys[i];
 
@@ -76,8 +126,6 @@ export const parseQueryFilters = (
             parsedValue = value === "true";
           } else if (!isNaN(Number(value))) {
             parsedValue = Number(value);
-          } else {
-            parsedValue = value;
           }
         }
 
