@@ -14,12 +14,13 @@ interface PopulatedRole {
   permissions: { name: string }[];
 }
 
-const role_env = config.role;
-
 export const authorize =
   (modelName: string, action: string) =>
   async (request: AuthRequest, reply: FastifyReply) => {
     try {
+      if (config.role === "dev") {
+        return;
+      }
       const authHeader = request.headers["authorization"];
       if (!authHeader) {
         return responseError(reply, "Authorization token missing", 401);
@@ -36,10 +37,6 @@ export const authorize =
 
       const userId = decoded?._id;
 
-      if (role_env === "dev") {
-        return;
-      }
-
       if (!userId) return responseError(reply, "Unauthorized!", 401);
 
       const user = await userModel
@@ -52,7 +49,7 @@ export const authorize =
         .lean();
 
       if (!user || !user.role)
-        return responseError(reply, "Access denied!", 403);
+        return responseError(reply, `Access denied!`, 403);
 
       const role = user.role as unknown as PopulatedRole;
 
@@ -62,7 +59,12 @@ export const authorize =
         (perm) => perm.name === requiredPermission
       );
 
-      if (!hasPermission) return responseError(reply, "Access denied!", 403);
+      if (!hasPermission)
+        return responseError(
+          reply,
+          `Access denied! You don't have permission to ${action} ${modelName}.`,
+          403
+        );
     } catch (err: any) {
       console.error(err);
       return responseError(reply, "Internal server error", 500, err.message);
