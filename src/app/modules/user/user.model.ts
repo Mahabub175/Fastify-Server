@@ -1,6 +1,7 @@
 import { Schema, model, Document } from "mongoose";
 import { IUser } from "./user.interface";
 import bcrypt from "bcrypt";
+import config from "../../config/config";
 
 interface IUserDocument extends IUser, Document {}
 
@@ -49,7 +50,7 @@ userSchema.pre("save", async function (next) {
   }
 
   if (user.isModified("password")) {
-    const saltRounds = 10;
+    const saltRounds = 12;
     user.password = await bcrypt.hash(user.password, saltRounds);
   }
 

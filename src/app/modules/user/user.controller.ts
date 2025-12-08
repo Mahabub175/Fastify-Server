@@ -7,6 +7,7 @@ import {
   parseQueryFilters,
 } from "../../utils/parsedBodyData";
 import { uploadService } from "../upload/upload.service";
+import { authServices } from "../auth/auth.service";
 
 // Create a user
 const createUserController = async (
@@ -25,17 +26,31 @@ const createUserController = async (
       ? [imagesPath]
       : [];
 
-    console.log(data);
-
-    const formData = {
+    const formData: Partial<IUser> = {
       ...data,
       ...(attachmentPath ? { attachment: attachmentPath } : {}),
       ...(images.length ? { images } : {}),
     };
 
-    const result = await userServices.createUserService(formData as IUser);
+    const createdUser = await userServices.createUserService(formData as IUser);
 
-    return responseSuccess(reply, result, "User Created Successfully");
+    const loginPayload = {
+      id: createdUser.email || createdUser.phoneNumber || createdUser.userName,
+      password: data.password,
+    };
+
+    const loginResult = await authServices.loginUserService(loginPayload);
+
+    const responseData = {
+      user: createdUser,
+      login: loginResult,
+    };
+
+    return responseSuccess(
+      reply,
+      responseData,
+      "User Created & Logged In Successfully!"
+    );
   } catch (error: any) {
     throw error;
   }
