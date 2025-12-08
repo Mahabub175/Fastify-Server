@@ -1,7 +1,7 @@
 import { Schema, model, Document } from "mongoose";
 import { IUser } from "./user.interface";
 import bcrypt from "bcrypt";
-import config from "../../config/config";
+import { roleModel } from "../role/role.model";
 
 interface IUserDocument extends IUser, Document {}
 
@@ -13,6 +13,7 @@ const userSchema = new Schema<IUserDocument>(
     email: { type: String, unique: true, trim: true },
     phoneNumber: { type: String, unique: true, trim: true },
     password: { type: String, required: true, trim: true },
+    role: { type: Schema.Types.ObjectId, ref: "role" },
     attachment: { type: String },
     images: { type: [String], default: undefined },
     isDeleted: { type: Boolean, default: false },
@@ -52,6 +53,18 @@ userSchema.pre("save", async function (next) {
   if (user.isModified("password")) {
     const saltRounds = 12;
     user.password = await bcrypt.hash(user.password, saltRounds);
+  }
+
+  if (!user.role) {
+    let defaultRole = await roleModel.findOne({ name: "user" });
+
+    if (!defaultRole) {
+      defaultRole = await roleModel.create({
+        name: "user",
+      });
+    }
+
+    user.role = defaultRole._id;
   }
 
   next();

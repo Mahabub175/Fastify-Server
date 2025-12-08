@@ -14,11 +14,15 @@ const loginUserService = async (userData: any) => {
     isDeleted: false,
   };
 
-  const user = await userModel
-    .findOne(query)
-    .select(
-      "_id firstName lastName userName email phoneNumber password status"
-    );
+  const user = await userModel.findOne(query).populate({
+    path: "role",
+    select: "name isDeleted status",
+    populate: {
+      path: "permissions",
+      model: "permission",
+      select: "name isDeleted status",
+    },
+  });
 
   if (!user) {
     return throwError("User not found!", 404);
@@ -42,6 +46,7 @@ const loginUserService = async (userData: any) => {
   const jwtPayload = {
     _id: user._id,
     id: user.phoneNumber || user.email || user.userName,
+    role: user.role,
     exp: expirationTime,
   };
 
@@ -55,6 +60,7 @@ const loginUserService = async (userData: any) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       userName: user.userName,
+      role: user.role,
     },
     token,
   };

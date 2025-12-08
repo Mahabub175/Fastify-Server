@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export interface IUser {
   firstName: string;
   lastName: string;
@@ -5,6 +7,7 @@ export interface IUser {
   email: string;
   phoneNumber: string;
   password: string;
+  role: Types.ObjectId;
   attachment: string;
   images: string[];
   isDeleted: boolean;

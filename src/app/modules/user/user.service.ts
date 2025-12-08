@@ -6,7 +6,6 @@ import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
-import { cacheAsync } from "../../utils/cacheAsync";
 
 // Create a user
 const createUserService = async (userData: IUser) => {
@@ -40,7 +39,19 @@ const getAllUserService = async (
   //   },
   //   60
   // );
-  const query = userModel.find().select("-password");
+
+  const query = userModel
+    .find()
+    .select("-password")
+    .populate({
+      path: "role",
+      select: "name isDeleted status",
+      populate: {
+        path: "permissions",
+        model: "permission",
+        select: "name isDeleted status",
+      },
+    });
 
   return paginateAndSort(query, {
     searchFields,
@@ -54,7 +65,18 @@ const getSingleUserService = async (userId: string) => {
   const queryId =
     typeof userId === "string" ? new mongoose.Types.ObjectId(userId) : userId;
 
-  const query = userModel.find({ _id: queryId }).select("-password");
+  const query = userModel
+    .find({ _id: queryId })
+    .select("-password")
+    .populate({
+      path: "role",
+      select: "name isDeleted status",
+      populate: {
+        path: "permissions",
+        model: "permission",
+        select: "name isDeleted status",
+      },
+    });
 
   const result = await paginateAndSort<IUser>(query);
 

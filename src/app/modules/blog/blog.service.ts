@@ -6,7 +6,6 @@ import { paginateAndSort } from "../../utils/paginateAndSort";
 import { throwError } from "../../utils/response";
 import { deleteFileSync } from "../../utils/deleteFilesFromStorage";
 import { cleanObject } from "../../utils/cleanObject";
-import { cacheAsync } from "../../utils/cacheAsync";
 
 // Create a blog
 const createBlogService = async (blogData: IBlog) => {
