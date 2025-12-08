@@ -2,6 +2,7 @@ import { Schema, model } from "mongoose";
 import mongoose from "mongoose";
 import cron from "node-cron";
 import { IPermission } from "./permission.interface";
+import { StandardActions } from "../../global/global.constants";
 
 const permissionSchema = new Schema<IPermission>(
   {
@@ -15,7 +16,18 @@ const permissionSchema = new Schema<IPermission>(
 
 const modelNames = Object.keys(mongoose.models);
 
-export const STANDARD_ACTIONS = ["create", "read", "update", "delete"];
+export const STANDARD_ACTIONS = [
+  StandardActions.CREATE,
+  StandardActions.READ,
+  StandardActions.READ_MANY,
+  StandardActions.UPDATE,
+  StandardActions.UPDATE_MANY,
+  StandardActions.SOFT_DELETE,
+  StandardActions.SOFT_DELETE_MANY,
+  StandardActions.HARD_DELETE,
+  StandardActions.HARD_DELETE_MANY,
+  StandardActions.RECOVER,
+];
 
 export const formatPermissionName = (modelName: string, action: string) =>
   `${modelName.toLowerCase()}:${action.toLowerCase()}`;
@@ -48,7 +60,11 @@ permissionSchema.pre("save", function (next) {
     );
   }
 
-  if (!modelPart || !actionPart || !STANDARD_ACTIONS.includes(actionPart)) {
+  if (
+    !modelPart ||
+    !actionPart ||
+    !STANDARD_ACTIONS.includes(actionPart as any)
+  ) {
     return next(
       new Error(
         `Permission must have valid model and action. Action must be one of: ${STANDARD_ACTIONS.join(

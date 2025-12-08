@@ -2,6 +2,7 @@ import { Schema, model, Document } from "mongoose";
 import { IUser } from "./user.interface";
 import bcrypt from "bcrypt";
 import { roleModel } from "../role/role.model";
+import { ModelNames } from "../../global/global.constants";
 
 interface IUserDocument extends IUser, Document {}
 
@@ -37,11 +38,11 @@ userSchema.pre("save", async function (next) {
 
     let username = cleanFirstName;
 
-    if (await model("user").exists({ userName: username })) {
+    if (await model(ModelNames.USER).exists({ userName: username })) {
       username = `${cleanFirstName}${cleanLastName}`;
 
       let count = 1;
-      while (await model("user").exists({ userName: username })) {
+      while (await model(ModelNames.USER).exists({ userName: username })) {
         username = `${cleanFirstName}${cleanLastName}${count}`;
         count++;
       }
@@ -56,11 +57,11 @@ userSchema.pre("save", async function (next) {
   }
 
   if (!user.role) {
-    let defaultRole = await roleModel.findOne({ name: "user" });
+    let defaultRole = await roleModel.findOne({ name: ModelNames.USER });
 
     if (!defaultRole) {
       defaultRole = await roleModel.create({
-        name: "user",
+        name: ModelNames.USER,
       });
     }
 
