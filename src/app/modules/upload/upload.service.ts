@@ -12,24 +12,24 @@ export const uploadService = async (
   fieldName: string,
   allowedTypes: string[] = ["image/jpeg", "image/png", "image/jpg"]
 ): Promise<string | string[] | undefined> => {
-  const field = (request.body as any)[fieldName];
+  const field = (request.body as any)?.[fieldName];
 
   if (!field) return undefined;
-
   if (Array.isArray(field)) {
     const filePaths: string[] = [];
     for (const file of field) {
       const uploadedPath = await processSingleFile(file, allowedTypes);
       if (uploadedPath) filePaths.push(uploadedPath);
     }
-    return filePaths;
+    return filePaths.length > 0 ? filePaths : undefined;
   }
 
-  return await processSingleFile(field, allowedTypes);
+  const uploaded = await processSingleFile(field, allowedTypes);
+  return uploaded ? uploaded : undefined;
 };
 
 const processSingleFile = async (
-  file: MultipartFile,
+  file: MultipartFile | null | undefined,
   allowedTypes: string[]
 ): Promise<string | undefined> => {
   if (!file) return undefined;
