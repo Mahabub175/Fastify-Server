@@ -253,6 +253,19 @@ const recoverBlogService = async (blogIds: string[]) => {
   };
 };
 
+// Recover all blog
+const recoverAllBlogService = async () => {
+  const result = await blogModel.updateMany(
+    { isDeleted: true },
+    { $set: { isDeleted: false } }
+  );
+
+  return {
+    modifiedCount: result.modifiedCount,
+    matchedCount: result.matchedCount,
+  };
+};
+
 // Soft delete many blogs
 const softDeleteManyBlogsService = async (blogIds: (string | number)[]) => {
   if (!blogIds || !blogIds.length) throwError("No blog IDs provided", 400);
@@ -341,6 +354,7 @@ export const blogServices = {
   toggleManyBlogSoftDeleteService,
   softDeleteManyBlogsService,
   recoverBlogService,
+  recoverAllBlogService,
   hardDeleteSingleBlogService,
   hardDeleteManyBlogsService,
 };

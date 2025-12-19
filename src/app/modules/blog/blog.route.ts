@@ -22,6 +22,12 @@ export const blogRoutes = async (app: FastifyInstance) => {
     blogControllers.recoverBlogController
   );
 
+  app.post(
+    "/blog/recover/all/",
+    { preHandler: authorize(ModelNames.BLOG, StandardActions.RECOVER) },
+    blogControllers.recoverAllBlogController
+  );
+
   app.get(
     "/blog/",
     { preHandler: authorize(ModelNames.BLOG, StandardActions.READ_MANY) },

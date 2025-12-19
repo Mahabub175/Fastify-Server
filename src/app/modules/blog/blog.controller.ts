@@ -302,6 +302,24 @@ const recoverBlogController = async (
   }
 };
 
+// Recover all blog
+const recoverAllBlogController = async (
+  req: FastifyRequest,
+  reply: FastifyReply
+) => {
+  try {
+    const result = await blogServices.recoverAllBlogService();
+
+    return responseSuccess(
+      reply,
+      null,
+      `Recovered ${result.modifiedCount} Blogs Successfully!`
+    );
+  } catch (error: any) {
+    throw error;
+  }
+};
+
 // Soft delete many blogs
 const softDeleteManyBlogController = async (
   req: FastifyRequest,
@@ -387,6 +405,7 @@ export const blogControllers = {
   toggleManyBlogSoftDeleteController,
   softDeleteManyBlogController,
   recoverBlogController,
+  recoverAllBlogController,
   hardDeleteSingleBlogController,
   hardDeleteManyBlogController,
 };

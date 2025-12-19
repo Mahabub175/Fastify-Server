@@ -9,6 +9,7 @@ const blogSchema = new Schema<IBlog>(
     slug: { type: String, required: true, unique: true, trim: true },
     shortDescription: { type: String, required: true, trim: true },
     content: { type: String, required: true, trim: true },
+    author: { type: String, trim: true },
     publishedAt: { type: Date, required: true, trim: true },
     attachment: { type: String },
     images: { type: [String], default: undefined },
@@ -22,14 +23,20 @@ const blogSchema = new Schema<IBlog>(
 );
 
 blogSchema.pre("validate", async function (next) {
-  if (!this.slug && this.name) {
+  if (this.isModified("name")) {
     let newSlug = generateSlug(this.name);
-    let slugExists = await model<IBlog>("blog").exists({ slug: newSlug });
+    let slugExists = await model<IBlog>("blog").exists({
+      slug: newSlug,
+      _id: { $ne: this._id },
+    });
     let suffix = 1;
 
     while (slugExists) {
       newSlug = `${generateSlug(this.name)}-${suffix}`;
-      slugExists = await model<IBlog>("blog").exists({ slug: newSlug });
+      slugExists = await model<IBlog>("blog").exists({
+        slug: newSlug,
+        _id: { $ne: this._id },
+      });
       suffix++;
     }
 
@@ -44,6 +51,41 @@ blogSchema.pre("validate", async function (next) {
     this.publishedAt = m.toDate();
   } else {
     this.publishedAt = new Date();
+  }
+
+  next();
+});
+
+blogSchema.pre("findOneAndUpdate", async function (next) {
+  const update = this.getUpdate() as any;
+
+  const setUpdate = update.$set ? update.$set : update;
+
+  if (setUpdate.name) {
+    let newSlug = generateSlug(setUpdate.name);
+
+    let slugExists = await model<IBlog>("blog").exists({
+      slug: newSlug,
+      _id: { $ne: this.getQuery()._id },
+    });
+
+    let suffix = 1;
+    while (slugExists) {
+      newSlug = `${generateSlug(setUpdate.name)}-${suffix}`;
+      slugExists = await model<IBlog>("blog").exists({
+        slug: newSlug,
+        _id: { $ne: this.getQuery()._id },
+      });
+      suffix++;
+    }
+
+    if (update.$set) {
+      update.$set.slug = newSlug;
+    } else {
+      update.slug = newSlug;
+    }
+
+    this.setUpdate(update);
   }
 
   next();

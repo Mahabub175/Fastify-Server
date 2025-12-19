@@ -3,6 +3,7 @@ export interface IBlog {
   slug: string;
   shortDescription: string;
   content: string;
+  author: string;
   publishedAt: Date;
   attachment: string;
   images: string[];
